@@ -1,4 +1,11 @@
 // simula uma corrida Madison em um velódromo
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include <stdbool.h>
+#include <pthread.h>
+#include <string.h>
 
 // cada corrida possui n voltas (10 ≤ n ≤ 1250)
 // o velódromo tem d metros (100 ≤ d ≤ 2500)
@@ -60,7 +67,47 @@
 // empates ao final da prova devem ser resolvidos aleatoriamente
 
 // main
-// lê n, d, k, <i|e>, 'i' para ineficiente 'e' para eficiente
 // flag debug
 //   a cada 60ms imprime na stderr o velódromo com a posição de cada ciclista
 //   não imprime o relatório ao final de cada volta, apenas ao final da corrida
+
+bool check_debug_flag(char *debug_arg, int argc) {
+    if (argc != 6) {
+        return false;
+    }
+
+    char *debug = debug_arg;
+    printf("%s\n", debug);
+    bool check_dash = (strncmp(debug, "--", 2) == 0);
+    
+    debug += 2;
+    bool check_debug = (strcmp(debug, "debug") == 0);
+    
+    if(!check_dash || !check_debug) {
+        printf("para rodar em modo debug, o último argumento deve ter formato --debug\n");
+        exit(1);
+    }
+
+    return true;
+}
+
+int main(int argc, char **argv) {
+    if (argc < 5 || argc > 6) {
+        fprintf(stderr, "Uso: %s <n> <d> <k> <i|e> --debug\n", argv[0]);
+        return 1;
+    }
+
+    bool debug = check_debug_flag(argv[5], argc);
+    
+    // lê n, d, k, <i|e>, 'i' para ineficiente 'e' para eficiente
+    int n = atoi(argv[1]);
+    int d = atoi(argv[2]);
+    int k = atoi(argv[3]);
+    char *exec_mode = argv[4];
+    printf("%d, %d, %d, %s\n", n, d, k, exec_mode);
+
+    if(debug) {
+        printf("rodando em modo debug\n");
+    }
+    return 0;
+}
