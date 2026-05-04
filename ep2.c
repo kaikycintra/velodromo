@@ -47,8 +47,20 @@ typedef struct {
 void printa_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2], int qtd_equipes) {
     for(int i = 0; i < qtd_equipes*2; i++) {
         struct_ciclista *c = ciclistas[i];
-        printf("ciclista: %s, equipe: %d, estado: %s\n", 
-                c->nome, c->equipe, c->estado);
+        printf("ciclista: %s, equipe: %d, estado: %s\n", c->nome, c->equipe, c->estado);
+    }
+}
+
+void printa_equipes(struct_equipe *equipes[MAX_EQUIPES],
+                    struct_ciclista *ciclistas[MAX_EQUIPES*2],
+                    int qtd_equipes) {
+    for(int i = 0; i < qtd_equipes; i++) {
+        struct_equipe *e = equipes[i];
+        struct_ciclista *c1 = ciclistas[2*i];
+        struct_ciclista *c2 = ciclistas[2*i+1];
+        printf("equipe: %d, volta atual: %d, pontos: %d\n", i, e->volta_atual, e->pontos);
+        printf("ciclista: %s, equipe: %d, estado: %s\n", c1->nome, c1->equipe, c1->estado);
+        printf("ciclista: %s, equipe: %d, estado: %s\n", c2->nome, c2->equipe, c2->estado);
     }
 }
 
@@ -60,6 +72,7 @@ void inicia_corrida(struct_corrida* corrida, bool debug) {
     }
 
     printa_ciclistas(corrida->ciclistas, corrida->qtd_equipes);
+    printa_equipes(corrida->equipes, corrida->ciclistas, corrida->qtd_equipes);
 
     // posiciona corredores
     // primeira volta todos andam 1m a cada 120ms
@@ -159,7 +172,16 @@ bool check_debug_flag(char *debug_arg, int argc) {
     return true;
 }
 
-void gera_ciclistas(int qtd_equipes, struct_ciclista *ciclistas[MAX_EQUIPES*2]) {
+void gera_equipes(struct_equipe *equipes[MAX_EQUIPES], int qtd_equipes) {
+    for(int i=0; i < qtd_equipes; i++) {
+        struct_equipe *equipe_i = malloc(sizeof(struct_equipe));
+        equipe_i->pontos = 0;
+        equipe_i->volta_atual = 0;
+        equipes[i] = equipe_i;
+    }
+}
+
+void gera_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2], int qtd_equipes) {
     for(int i=0; i < 2*qtd_equipes; i++) {
         struct_ciclista *ciclista_i = malloc(sizeof(struct_ciclista));
         ciclistas[i] = ciclista_i;
@@ -209,7 +231,8 @@ int main(int argc, char **argv) {
     
     printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, debug);
 
-    gera_ciclistas(corrida->qtd_equipes, corrida->ciclistas);
+    gera_ciclistas(corrida->ciclistas, corrida->qtd_equipes);
+    gera_equipes(corrida->equipes, corrida->qtd_equipes);
 
     // cria 2*k threads ciclista iguais
     pthread_t ciclistas[2*k];
