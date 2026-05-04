@@ -159,24 +159,20 @@ void posiciona_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2],
 
 }
 
-void inicia_corrida(struct_corrida* corrida, bool debug) {
+void posiciona_inicio_corrida(struct_corrida* corrida, bool debug) {
     posiciona_ciclistas(corrida->ciclistas,
                         corrida->velodromo,
                         corrida->qtd_equipes,
                         corrida->comprimento_velodromo);
     printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, debug);
-    // primeira volta todos andam 1m a cada 120ms
-    // um ciclista de cada equipe larga em fila com ordenação aleatória
-    // largam antes da linha de chegada, com 5 ciclistas no máximo lado a lado nas pistas internas
-    // temos várias filas com 5 e uma fila final com até 5 ciclistas
-    // os ciclistas que não largaram ficam na pista mais externa a 15km/h (1m a cada 240ms)
 }
 
 void arbitro(struct_corrida* corrida, bool debug) {
     if(corrida->volta_atual == 0) {
-        inicia_corrida(corrida, debug);
+        posiciona_inicio_corrida(corrida, debug);
     }
-
+    printa_ciclistas(corrida->ciclistas, corrida->qtd_equipes*2);
+    
     // versão ingênua, um semáforo para controlar acesso à matriz velódromo
     // versão eficiente, um semáforo para cada posição ou coluna da matriz
 
@@ -311,12 +307,6 @@ int main(int argc, char **argv) {
     
     gera_ciclistas(corrida->ciclistas, corrida->qtd_equipes);
     gera_equipes(corrida->equipes, corrida->qtd_equipes);
-
-    // cria 2*k threads ciclista iguais
-    pthread_t ciclistas[2*k];
-    for(int i=0; i < 2*k; i++) {
-        pthread_create(&ciclistas[i], NULL, ciclista, corrida->ciclistas[i]);
-    }
 
     arbitro(corrida, debug); // passa a corrida para que o árbitro a gerencie
 
