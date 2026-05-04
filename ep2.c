@@ -21,6 +21,8 @@
 #define QUANTUM 60 // intervalo de tempo em ms que define um passo da simulação
 
 typedef struct {
+    int pista;
+    int coluna;
     int tempo_por_volta; // velocidade
     int tempo_restante_para_andar; 
     int voltas_realizadas; // voltas realizadas enquanto ativo, usado para implementar revezamento
@@ -51,6 +53,13 @@ void printa_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2], int qtd_equipes
     }
 }
 
+void printa_ciclistas_ativos(struct_ciclista *ciclistas[MAX_EQUIPES], int qtd_equipes) {
+    for(int i = 0; i < qtd_equipes; i++) {
+        struct_ciclista *c = ciclistas[i];
+        printf("ciclista: %s, equipe: %d, estado: %s\n", c->nome, c->equipe, c->estado);
+    }
+}
+
 void printa_equipes(struct_equipe *equipes[MAX_EQUIPES],
                     struct_ciclista *ciclistas[MAX_EQUIPES*2],
                     int qtd_equipes) {
@@ -64,6 +73,28 @@ void printa_equipes(struct_equipe *equipes[MAX_EQUIPES],
     }
 }
 
+void get_ciclistas_ativos(struct_ciclista *ciclistas[MAX_EQUIPES*2],
+                          struct_ciclista *c_ativos[MAX_EQUIPES],
+                          int qtd_equipes) {
+    int idx = 0;
+    
+    for(int i = 0; i < qtd_equipes*2; i++) {
+        if(strcmp(ciclistas[i]->estado, "ativo") == 0) {
+            c_ativos[idx] = ciclistas[i];
+            idx++;
+        }
+    }
+}
+
+void posiciona_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2],
+                        char *velodromo[10][MAX_LEN_PISTA],
+                        int qtd_equipes) {
+    struct_ciclista* c_ativos[MAX_EQUIPES];
+
+    get_ciclistas_ativos(ciclistas, c_ativos, qtd_equipes);
+    printa_ciclistas_ativos(c_ativos, qtd_equipes);
+}
+
 void inicia_corrida(struct_corrida* corrida, bool debug) {
     // sorteia ciclistas ativos e descansando para cada equipe
     for(int i = 0; i < corrida->qtd_equipes*2; i = i+2) {
@@ -71,10 +102,7 @@ void inicia_corrida(struct_corrida* corrida, bool debug) {
         sprintf(corrida->ciclistas[idx]->estado, "ativo");
     }
 
-    printa_ciclistas(corrida->ciclistas, corrida->qtd_equipes);
-    printa_equipes(corrida->equipes, corrida->ciclistas, corrida->qtd_equipes);
-
-    // posiciona corredores
+    posiciona_ciclistas(corrida->ciclistas, corrida->velodromo, corrida->qtd_equipes);
     // primeira volta todos andam 1m a cada 120ms
     // um ciclista de cada equipe larga em fila com ordenação aleatória
     // largam antes da linha de chegada, com 5 ciclistas no máximo lado a lado nas pistas internas
