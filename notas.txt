@@ -10,3 +10,4 @@ https://www.w3schools.com/c/ref_string_strcat.php
 https://stackoverflow.com/questions/68876512/is-it-possible-to-format-strings-in-c-like-pythons-f-strings
 man sprintf
 https://stackoverflow.com/questions/12745601/expression-must-be-a-modifiable-lvalue
+https://www.w3schools.com/c/c_random_numbers.php

@@ -44,15 +44,35 @@ typedef struct {
     struct_ciclista *ciclistas[MAX_EQUIPES*2];
 } struct_corrida;
 
-void arbitro(struct_corrida* corrida, bool debug) {
-    // se volta_atual=0 começo da corrida
-    //
+void printa_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2], int qtd_equipes) {
+    for(int i = 0; i < qtd_equipes*2; i++) {
+        struct_ciclista *c = ciclistas[i];
+        printf("ciclista: %s, equipe: %d, estado: %s\n", 
+                c->nome, c->equipe, c->estado);
+    }
+}
+
+void inicia_corrida(struct_corrida* corrida, bool debug) {
+    // sorteia ciclistas ativos e descansando para cada equipe
+    for(int i = 0; i < corrida->qtd_equipes*2; i = i+2) {
+        int idx = (rand() % 2 == 0) ? i : i+1;
+        sprintf(corrida->ciclistas[idx]->estado, "ativo");
+    }
+
+    printa_ciclistas(corrida->ciclistas, corrida->qtd_equipes);
+
     // posiciona corredores
     // primeira volta todos andam 1m a cada 120ms
     // um ciclista de cada equipe larga em fila com ordenação aleatória
     // largam antes da linha de chegada, com 5 ciclistas no máximo lado a lado nas pistas internas
     // temos várias filas com 5 e uma fila final com até 5 ciclistas
     // os ciclistas que não largaram ficam na pista mais externa a 15km/h (1m a cada 240ms)
+}
+
+void arbitro(struct_corrida* corrida, bool debug) {
+    if(corrida->volta_atual == 0) {
+        inicia_corrida(corrida, debug);
+    }
 
     // versão ingênua, um semáforo para controlar acesso à matriz velódromo
     // versão eficiente, um semáforo para cada posição ou coluna da matriz
@@ -77,13 +97,13 @@ void arbitro(struct_corrida* corrida, bool debug) {
     //   ao final da volta, imprime a posição de cada equipe
     //   ao final da corrida, imprime o ranqueamento das equipes
     //      posição da equipe, instante de tempo em que finalizaram a corrida, qtd de voltas vencidas
+
+    //é necessário dar_free nos dados de cada ciclista que foram alocados em gera_ciclistas
+    //free(ciclistas_array[i]);
 }
 
 void* ciclista(void* arg) {
-    struct_ciclista* dados = (struct_ciclista*) arg;
-
-    printf("thread do ciclista: %s, Equipe: %d, Estado: %s\n", 
-            dados->nome, dados->equipe, dados->estado);
+    // struct_ciclista* dados = (struct_ciclista*) arg;
     // controla sua própria velocidade
     //   caso a volta anterior tenha sido feita a 30Km/h, o sorteio é feito com 80%
     //   de chance de escolher 60Km/h e 20% de chance de escolher 30Km/h. Caso a volta anterior tenha sido
@@ -179,6 +199,7 @@ int main(int argc, char **argv) {
     int k = atoi(argv[3]);
     char *exec_mode = argv[4];
     printf("%d, %d, %d, %s\n", n, d, k, exec_mode);
+    srand(time(NULL));
 
     struct_corrida* corrida = malloc(sizeof(struct_corrida));
     corrida->voltas = n;
@@ -196,12 +217,7 @@ int main(int argc, char **argv) {
         pthread_create(&ciclistas[i], NULL, ciclista, corrida->ciclistas[i]);
     }
 
-    sleep(0.2);
-
-    //arbitro(corrida, debug);
-
-    //é necessário dar_free nos dados de cada ciclista que foram alocados em gera_ciclistas
-    //free(ciclistas_array[i]);
+    arbitro(corrida, debug); // passa a corrida para que o árbitro a gerencie
 
     return 0;
 }
