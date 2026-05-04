@@ -46,15 +46,8 @@ typedef struct {
     struct_ciclista *ciclistas[MAX_EQUIPES*2];
 } struct_corrida;
 
-void printa_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2], int qtd_equipes) {
-    for(int i = 0; i < qtd_equipes*2; i++) {
-        struct_ciclista *c = ciclistas[i];
-        printf("ciclista: %s, equipe: %d, estado: %s\n", c->nome, c->equipe, c->estado);
-    }
-}
-
-void printa_ciclistas_ativos(struct_ciclista *ciclistas[MAX_EQUIPES], int qtd_equipes) {
-    for(int i = 0; i < qtd_equipes; i++) {
+void printa_ciclistas(struct_ciclista *ciclistas[], int arr_len) {
+    for(int i = 0; i < arr_len; i++) {
         struct_ciclista *c = ciclistas[i];
         printf("ciclista: %s, equipe: %d, estado: %s\n", c->nome, c->equipe, c->estado);
     }
@@ -73,27 +66,28 @@ void printa_equipes(struct_equipe *equipes[MAX_EQUIPES],
     }
 }
 
-void get_ciclistas_ativos(struct_ciclista *ciclistas[MAX_EQUIPES*2],
+void get_ciclistas_por_estado(struct_ciclista *ciclistas[MAX_EQUIPES*2],
                           struct_ciclista *c_ativos[MAX_EQUIPES],
-                          int qtd_equipes) {
+                          int qtd_equipes,
+                          char* estado) {
     int idx = 0;
     
     for(int i = 0; i < qtd_equipes*2; i++) {
-        if(strcmp(ciclistas[i]->estado, "ativo") == 0) {
+        if(strcmp(ciclistas[i]->estado, estado) == 0) {
             c_ativos[idx] = ciclistas[i];
             idx++;
         }
     }
 }
 
-void embaralha_ciclistas_ativos(struct_ciclista *c_ativos[MAX_EQUIPES],
-                                int qtd_equipes) {
+void embaralha_ciclistas(struct_ciclista *c_ativos[],
+                         int arr_len) {
     int idx_antigo, idx_novo;
     struct_ciclista *c_temp, *c_antigo;
 
     idx_antigo = 0;
-    for(int i = 0; i < qtd_equipes; i++) {
-        idx_novo = rand() % qtd_equipes;
+    for(int i = 0; i < arr_len; i++) {
+        idx_novo = rand() % arr_len;
         c_antigo = c_ativos[idx_antigo];
         c_temp = c_ativos[idx_novo];
         c_ativos[idx_novo] = c_antigo;
@@ -123,10 +117,15 @@ void posiciona_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2],
                         int comprimento_pista) {
     //embaralha ciclistas e os posiciona em filas de 5 nas pistas mais internas
     struct_ciclista* c_ativos[MAX_EQUIPES];
+    struct_ciclista* c_descansando[MAX_EQUIPES];
 
-    get_ciclistas_ativos(ciclistas, c_ativos, qtd_equipes);
-    embaralha_ciclistas_ativos(c_ativos, qtd_equipes);
-    
+    get_ciclistas_por_estado(ciclistas, c_ativos, qtd_equipes, "ativo");
+    get_ciclistas_por_estado(ciclistas, c_descansando, qtd_equipes, "descansando");
+
+    embaralha_ciclistas(c_ativos, qtd_equipes);
+    embaralha_ciclistas(c_descansando, qtd_equipes);
+
+    // posiciona ciclistas ativos
     int len_ultima_fila = qtd_equipes % 5;
     int qtd_filas = qtd_equipes / 5 + 1; // divisão inteira
     if(len_ultima_fila == 0) qtd_filas--;
@@ -148,6 +147,10 @@ void posiciona_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2],
             }
         }
     }
+    // inicializa velocidade dos ciclistas ativos
+
+    // posiciona ciclistas inativos
+
 }
 
 void inicia_corrida(struct_corrida* corrida, bool debug) {
