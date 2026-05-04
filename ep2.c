@@ -7,28 +7,39 @@
 #include <pthread.h>
 #include <string.h>
 
-typedef struct {
-    // quantidade de pontos
-    // integrantes
-    // volta
-} equipe;
+#define MIN_VOLTAS 10
+#define MAX_VOLTAS 1250
+
+#define MIN_LEN_VELODROMO 100
+#define MAX_LEN_VELODROMO 2500
+#define MAX_LEN_PISTA 250 // MAX_LEN_VELODROMO/10, sendo 10 o número de pistas
+
+#define MIN_EQUIPES 5
+#define MAX_EQUIPES 1249 // ⌊MAX_LEN_VELODROMO/2⌋−1
 
 typedef struct {
-    // n voltas
-    // velódromo com d metros
-    // k equipes
-    // volta atual (volta atual da equipe em primeiro lugar)
-} corrida;
+    int tempo_por_volta; // velocidade
+    int voltas_realizadas; // voltas realizadas enquanto ativo, usado para implementar revezamento
+    char *estado; // ativo, descansando
+    char *nome; // número da equipe + a|b
+    int equipe;
+} struct_ciclista;
 
 typedef struct {
-    // velocidade
-    // equipe
-    // estado (ativo, descansando)
-    // nome (número da equipe + a|b)
-} ciclista;
+    int pontos;
+    int volta_atual;
+} struct_equipe;
+    
+typedef struct {
+    int voltas;
+    int qtd_equipes;
+    int comprimento_velodromo;
+    int volta_atual; // volta atual da equipe em primeiro lugar
+    char *velodromo[10][MAX_LEN_PISTA]; // 10 pistas e até 250m de comprimento de pista, totalizando até 2500
+    struct_equipe equipes[MAX_EQUIPES];
+} struct_corrida;
 
-
-void* arbitro(void* arg) {
+void arbitro(void* arg) {
     // controla o estado da corrida
     // atualiza pontuações e volta atual
 
@@ -62,10 +73,10 @@ void* arbitro(void* arg) {
     //   ao final da volta, imprime a posição de cada equipe
     //   ao final da corrida, imprime o ranqueamento das equipes
     //      posição da equipe, instante de tempo em que finalizaram a corrida, qtd de voltas vencidas
-    return 1;
 }
 
 void* ciclista(void* arg) {
+    
     // controla sua própria velocidade
     //   caso a volta anterior tenha sido feita a 30Km/h, o sorteio é feito com 80%
     //   de chance de escolher 60Km/h e 20% de chance de escolher 30Km/h. Caso a volta anterior tenha sido
@@ -77,7 +88,7 @@ void* ciclista(void* arg) {
     //   a nova ciclista entra na prova com a mesma velocidade da ativa
     //   a ciclista que entrou em recuperação vai para a pista mais externa e pedala a 15km/h
     // atualiza sua posição no velódromo (seção crítica), remove identificador na posição antiga
-    return 1;
+    return NULL;
 }
 
 // main
@@ -128,18 +139,15 @@ int main(int argc, char **argv) {
     char *exec_mode = argv[4];
     printf("%d, %d, %d, %s\n", n, d, k, exec_mode);
 
-    if(debug) {
-        printf("rodando em modo debug\n");
-    }
+    struct_corrida corrida;
+    corrida.comprimento_velodromo = d;
+    corrida.voltas = n;
+    corrida.qtd_equipes = k;
+    corrida.volta_atual = 0;
+    
+    printa_velodromo(corrida.velodromo, corrida.comprimento_velodromo, debug);
 
-    // estado global do velódromo (representado como matriz)
-    // velódromo é um vetor circular com d posições
-    int rows = 10;
-    int cols = d/10;
-    int *velodromo = (int*) malloc(10 * cols * sizeof(int));
-    free(velodromo);
-
-    // criar 2*k threads ciclista iguais
+    // cria 2*k threads ciclista iguais
     pthread_t ciclistas[2*k];
     for(int i=0; i < 2*k; i++) {
         pthread_create(&ciclistas[i], NULL, ciclista, NULL);
