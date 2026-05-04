@@ -97,8 +97,19 @@ void* ciclista(void* arg) {
 //   não imprime o relatório ao final de cada volta, apenas ao final da corrida
 //   fprintf(stderr, );
 
-void printa_velodromo() {
-    return 1;
+void printa_velodromo(char *velodromo[][250], int comprimento_velodromo, bool debug) {
+    FILE *saida = debug ? stderr : stdout;
+
+    int linhas = 10;
+    int colunas = comprimento_velodromo/10;
+
+    for(int i = 0; i < linhas; i++) {
+        for(int j = 0; j < colunas; j++) {
+            char *display_string = velodromo[i][j] == NULL ? ". " : velodromo[i][j];
+            fprintf(saida, "%s ", display_string);
+        }
+        fprintf(saida, "\n");
+    }
 }
 
 bool check_debug_flag(char *debug_arg, int argc) {
