@@ -103,7 +103,7 @@ void printa_velodromo(char *velodromo[][250], int comprimento_velodromo, bool de
     int linhas = 10;
     int colunas = comprimento_velodromo/10;
 
-    for(int i = 0; i < linhas; i++) {
+    for(int i = linhas-1; i >= 0; i--) {
         for(int j = 0; j < colunas; j++) {
             char *display_string = velodromo[i][j] == NULL ? ". " : velodromo[i][j];
             fprintf(saida, "%s ", display_string);
