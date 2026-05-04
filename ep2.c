@@ -128,7 +128,8 @@ void posiciona_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2],
     embaralha_ciclistas_ativos(c_ativos, qtd_equipes);
     
     int len_ultima_fila = qtd_equipes % 5;
-    int qtd_filas = qtd_equipes / 5; // divisão inteira
+    int qtd_filas = qtd_equipes / 5 + 1; // divisão inteira
+    if(len_ultima_fila == 0) qtd_filas--;
     int idx = 0;
 
     for(int coluna = 0; coluna < qtd_filas; coluna++) {
