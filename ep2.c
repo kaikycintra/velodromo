@@ -19,6 +19,9 @@
 
 #define QUANTUM 60 // intervalo de tempo em ms que define um passo da simulação
 
+pthread_mutex_t mutex_velodromo; // usado para implementação ineficiente
+pthread_cond_t sinal_arbitro;
+
 typedef struct {
     int pista;
     int coluna;
@@ -33,6 +36,7 @@ typedef struct {
 typedef struct {
     int pontos;
     int volta_atual;
+    bool terminou;
 } struct_equipe;
     
 typedef struct {
@@ -44,6 +48,14 @@ typedef struct {
     struct_equipe *equipes[MAX_EQUIPES];
     struct_ciclista *ciclistas[MAX_EQUIPES*2];
 } struct_corrida;
+
+typedef struct {
+    struct_ciclista *ciclista;
+    struct_equipe *equipe;
+    int voltas;
+    int comprimento_velodromo;
+    char *(*velodromo)[MAX_LEN_VELODROMO];
+} struct_ciclista_arg;
 
 void printa_ciclistas(struct_ciclista *ciclistas[], int arr_len) {
     for(int i = 0; i < arr_len; i++) {
@@ -167,11 +179,51 @@ void posiciona_inicio_corrida(struct_corrida* corrida, bool debug) {
     printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, debug);
 }
 
+void atualizar_posicao() {
+}
+
+void* ciclista(void* arg) {
+    struct_ciclista_arg* dados = (struct_ciclista_arg*) arg;
+
+    // struct_ciclista* dados = (struct_ciclista*) arg;
+    // controla sua própria velocidade
+    //   caso a volta anterior tenha sido feita a 30Km/h, o sorteio é feito com 80%
+    //   de chance de escolher 60Km/h e 20% de chance de escolher 30Km/h. Caso a volta anterior tenha sido
+    //   feita a 60Km/h, o sorteio é feito com 40% de chance de escolher 60Km/h e 60% de chance de escolher 30Km/h
+    // controla quando deve avançar
+    // se está a 60km/h e há um na frente a 30km/h, anda a 30km/h se não consegue ultrapassar
+    // para ultrapassar deve haver espaço à frente em uma pista mais externa, movimentação entre pistas é instantânea
+    // revezamento acontece a partir de quando a cicilista ativa completa 5 voltas
+    //   a nova ciclista entra na prova com a mesma velocidade da ativa
+    //   a ciclista que entrou em recuperação vai para a pista mais externa e pedala a 15km/h
+    // atualiza sua posição no velódromo (seção crítica), remove identificador na posição antiga
+    pthread_mutex_lock (&mutex_velodromo);
+    atualizar_posicao();
+    pthread_mutex_unlock (&mutex_velodromo);
+    // atualiza a equipe, acabou a corrida
+    return NULL;
+}
+
 void arbitro(struct_corrida* corrida, bool debug) {
     if(corrida->volta_atual == 0) {
         posiciona_inicio_corrida(corrida, debug);
     }
-    printa_ciclistas(corrida->ciclistas, corrida->qtd_equipes*2);
+
+    pthread_mutex_init(&mutex_velodromo, NULL);
+    pthread_t t_ciclista[corrida->qtd_equipes*2];
+    
+    for(int i = 0; i < corrida->qtd_equipes*2; i++) {
+        struct_ciclista_arg *arg_i = malloc(sizeof(struct_ciclista_arg));
+        arg_i->ciclista = corrida->ciclistas[i];
+        arg_i->equipe = corrida->equipes[i];
+        arg_i->voltas = corrida->voltas;
+        arg_i->comprimento_velodromo = corrida->comprimento_velodromo;
+        arg_i->velodromo = corrida->velodromo;
+        pthread_create(&t_ciclista[i], NULL, ciclista, arg_i);
+    }
+
+    pthread_cond_init(&sinal_arbitro, NULL);
+    pthread_cond_broadcast(&sinal_arbitro);
     
     // versão ingênua, um semáforo para controlar acesso à matriz velódromo
     // versão eficiente, um semáforo para cada posição ou coluna da matriz
@@ -197,28 +249,12 @@ void arbitro(struct_corrida* corrida, bool debug) {
     //   ao final da corrida, imprime o ranqueamento das equipes
     //      posição da equipe, instante de tempo em que finalizaram a corrida, qtd de voltas vencidas
 
-    //é necessário dar_free nos dados de cada ciclista que foram alocados em gera_ciclistas
-    //free(ciclistas_array[i]);
+    // é necessário dar_free nos dados ao final da corrida, ciclistas, ciclistas_args, equipes e corrida
 
     //   a cada 60ms imprime na stderr o velódromo com a posição de cada ciclista
     //   não imprime o relatório ao final de cada volta, apenas ao final da corrida
     //   fprintf(stderr, );
-}
 
-void* ciclista(void* arg) {
-    // struct_ciclista* dados = (struct_ciclista*) arg;
-    // controla sua própria velocidade
-    //   caso a volta anterior tenha sido feita a 30Km/h, o sorteio é feito com 80%
-    //   de chance de escolher 60Km/h e 20% de chance de escolher 30Km/h. Caso a volta anterior tenha sido
-    //   feita a 60Km/h, o sorteio é feito com 40% de chance de escolher 60Km/h e 60% de chance de escolher 30Km/h
-    // controla quando deve avançar
-    // se está a 60km/h e há um na frente a 30km/h, anda a 30km/h se não consegue ultrapassar
-    // para ultrapassar deve haver espaço à frente em uma pista mais externa, movimentação entre pistas é instantânea
-    // revezamento acontece a partir de quando a cicilista ativa completa 5 voltas
-    //   a nova ciclista entra na prova com a mesma velocidade da ativa
-    //   a ciclista que entrou em recuperação vai para a pista mais externa e pedala a 15km/h
-    // atualiza sua posição no velódromo (seção crítica), remove identificador na posição antiga
-    return NULL;
 }
 
 bool check_debug_flag(char *debug_arg, int argc) {
@@ -246,6 +282,7 @@ void gera_equipes(struct_equipe *equipes[MAX_EQUIPES], int qtd_equipes) {
         struct_equipe *equipe_i = malloc(sizeof(struct_equipe));
         equipe_i->pontos = 0;
         equipe_i->volta_atual = 0;
+        equipe_i->terminou = false;
         equipes[i] = equipe_i;
     }
 }
