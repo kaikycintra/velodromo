@@ -3,3 +3,10 @@ man pthreads
 man pthread_join
 man pthread_kill
 https://stackoverflow.com/questions/2128728/allocate-matrix-in-c
+man sem_wait
+man sem_post
+https://www.geeksforgeeks.org/c/how-to-declare-and-initialize-an-array-of-pointers-to-a-structure-in-c/
+https://www.w3schools.com/c/ref_string_strcat.php
+https://stackoverflow.com/questions/68876512/is-it-possible-to-format-strings-in-c-like-pythons-f-strings
+man sprintf
+https://stackoverflow.com/questions/12745601/expression-must-be-a-modifiable-lvalue

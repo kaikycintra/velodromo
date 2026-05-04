@@ -17,11 +17,14 @@
 #define MIN_EQUIPES 5
 #define MAX_EQUIPES 1249 // ⌊MAX_LEN_VELODROMO/2⌋−1
 
+#define QUANTUM 60 // intervalo de tempo em ms que define um passo da simulação
+
 typedef struct {
     int tempo_por_volta; // velocidade
+    int tempo_restante_para_andar; 
     int voltas_realizadas; // voltas realizadas enquanto ativo, usado para implementar revezamento
-    char *estado; // ativo, descansando
-    char *nome; // número da equipe + a|b
+    char estado[12]; // ativo, descansando
+    char nome[12]; // número da equipe + a|b
     int equipe;
 } struct_ciclista;
 
@@ -40,10 +43,10 @@ typedef struct {
 } struct_corrida;
 
 void arbitro(void* arg) {
-    // controla o estado da corrida
     // atualiza pontuações e volta atual
 
     // começo da corrida
+    // posiciona corredores
     // primeira volta todos andam 1m a cada 120ms
     // um ciclista de cada equipe larga em fila com ordenação aleatória
     // largam antes da linha de chegada, com 5 ciclistas no máximo lado a lado nas pistas internas
@@ -76,7 +79,10 @@ void arbitro(void* arg) {
 }
 
 void* ciclista(void* arg) {
-    
+    struct_ciclista* dados = (struct_ciclista*) arg;
+
+    printf("thread do ciclista: %s, Equipe: %d, Estado: %s\n", 
+            dados->nome, dados->equipe, dados->estado);
     // controla sua própria velocidade
     //   caso a volta anterior tenha sido feita a 30Km/h, o sorteio é feito com 80%
     //   de chance de escolher 60Km/h e 20% de chance de escolher 30Km/h. Caso a volta anterior tenha sido
@@ -132,6 +138,30 @@ bool check_debug_flag(char *debug_arg, int argc) {
     return true;
 }
 
+void gera_ciclistas(int qtd_equipes, struct_ciclista** ciclistas) {
+    for(int i = 0; i < qtd_equipes*2; i = i+2) {
+        struct_ciclista *c1 = malloc(sizeof(struct_ciclista));
+        struct_ciclista *c2 = malloc(sizeof(struct_ciclista));
+
+        c1->equipe = i/2;
+        sprintf(c1->nome, "%da", i/2);
+        sprintf(c1->estado, "descansando");
+        c1->tempo_por_volta = 120;
+        c1->tempo_restante_para_andar = 120;
+        c1->voltas_realizadas = 0;
+
+        c2->equipe = i/2;
+        sprintf(c2->nome, "%db", i/2);
+        sprintf(c2->estado, "descansando");
+        c2->tempo_por_volta = 120;
+        c2->tempo_restante_para_andar = 120;
+        c2->voltas_realizadas = 0;
+
+        ciclistas[i] = c1;
+        ciclistas[i+1] = c2;
+    }
+}
+
 int main(int argc, char **argv) {
     if (argc < 5 || argc > 6) {
         fprintf(stderr, "Uso: %s <n> <d> <k> <i|e> --debug\n", argv[0]);
@@ -160,9 +190,17 @@ int main(int argc, char **argv) {
 
     // cria 2*k threads ciclista iguais
     pthread_t ciclistas[2*k];
+    struct_ciclista* ciclistas_array[corrida.qtd_equipes*2];
+    gera_ciclistas(corrida.qtd_equipes, ciclistas_array);
+
     for(int i=0; i < 2*k; i++) {
-        pthread_create(&ciclistas[i], NULL, ciclista, NULL);
+        pthread_create(&ciclistas[i], NULL, ciclista, ciclistas_array[i]);
     }
+
+    sleep(0.1);
+
+    //é necessário dar_free nos dados de cada ciclista que foram alocados em gera_ciclistas
+    //free(ciclistas_array[i]);
 
     return 0;
 }
