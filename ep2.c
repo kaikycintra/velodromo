@@ -147,19 +147,12 @@ void posiciona_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2],
             }
         }
     }
-    // inicializa velocidade dos ciclistas ativos
 
     // posiciona ciclistas inativos
 
 }
 
 void inicia_corrida(struct_corrida* corrida, bool debug) {
-    // sorteia ciclistas ativos e descansando para cada equipe
-    for(int i = 0; i < corrida->qtd_equipes*2; i = i+2) {
-        int idx = (rand() % 2 == 0) ? i : i+1;
-        sprintf(corrida->ciclistas[idx]->estado, "ativo");
-    }
-
     posiciona_ciclistas(corrida->ciclistas,
                         corrida->velodromo,
                         corrida->qtd_equipes,
@@ -264,16 +257,24 @@ void gera_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2], int qtd_equipes) 
         ciclistas[i]->equipe = i/2;
         sprintf(ciclistas[i]->nome, "%da", i/2);
         sprintf(ciclistas[i]->estado, "descansando");
-        ciclistas[i]->tempo_por_volta = 120;
-        ciclistas[i]->tempo_restante_para_andar = 120;
+        ciclistas[i]->tempo_por_volta = 240;
+        ciclistas[i]->tempo_restante_para_andar = 240;
         ciclistas[i]->voltas_realizadas = 0;
 
         ciclistas[i+1]->equipe = i/2;
         sprintf(ciclistas[i+1]->nome, "%db", i/2);
         sprintf(ciclistas[i+1]->estado, "descansando");
-        ciclistas[i+1]->tempo_por_volta = 120;
-        ciclistas[i+1]->tempo_restante_para_andar = 120;
+        ciclistas[i+1]->tempo_por_volta = 240;
+        ciclistas[i+1]->tempo_restante_para_andar = 240;
         ciclistas[i+1]->voltas_realizadas = 0;
+    }
+
+    // sorteia ciclistas ativos para cada equipe
+    for(int i = 0; i < qtd_equipes*2; i = i+2) {
+        int idx = (rand() % 2 == 0) ? i : i+1;
+        sprintf(ciclistas[idx]->estado, "ativo");
+        ciclistas[idx]->tempo_por_volta = 120;
+        ciclistas[idx]->tempo_restante_para_andar = 120;
     }
 }
 
