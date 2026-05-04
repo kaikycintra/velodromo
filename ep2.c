@@ -307,7 +307,12 @@ int main(int argc, char **argv) {
     struct_corrida* corrida = malloc(sizeof(struct_corrida));
     corrida->voltas = n;
     corrida->qtd_equipes = k;
-    corrida->comprimento_velodromo = d;
+
+    // arredondamos o comprimento do velódromo para múltiplo de 10 que está acima de d
+    // com isso mantemos a propriedade 'número de pistas'*'comprimento da pista'='comprimento do velódromo'
+    // que para valores inteiros e com número de pistas=10, necessita que o comprimento do velódromo seja múltiplo de 10
+    // com isso o comprimento da pista será um número inteiro e poderemos representar o velódromo como matriz
+    corrida->comprimento_velodromo = 10*((d + 9)/10);
     corrida->volta_atual = 0;
     
     gera_ciclistas(corrida->ciclistas, corrida->qtd_equipes);
