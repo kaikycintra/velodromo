@@ -13,7 +13,6 @@
 
 #define MIN_LEN_VELODROMO 100
 #define MAX_LEN_VELODROMO 2500
-#define MAX_LEN_PISTA 250 // MAX_LEN_VELODROMO/QTD_PISTAS
 
 #define MIN_EQUIPES 5
 #define MAX_EQUIPES 1249 // ⌊MAX_LEN_VELODROMO/2⌋−1
@@ -39,9 +38,9 @@ typedef struct {
 typedef struct {
     int voltas;
     int qtd_equipes;
-    int comprimento_velodromo;
+    int comprimento_velodromo; // comprimento de cada pista
     int volta_atual; // volta atual da equipe em primeiro lugar
-    char *velodromo[QTD_PISTAS][MAX_LEN_PISTA]; // 10 pistas e até 250m de comprimento de pista, totalizando até 2500m
+    char *velodromo[QTD_PISTAS][MAX_LEN_VELODROMO];
     struct_equipe *equipes[MAX_EQUIPES];
     struct_ciclista *ciclistas[MAX_EQUIPES*2];
 } struct_corrida;
@@ -96,11 +95,11 @@ void embaralha_ciclistas(struct_ciclista *c_ativos[],
     }
 }
 
-void printa_velodromo(char *velodromo[10][MAX_LEN_PISTA], int comprimento_velodromo, bool debug) {
+void printa_velodromo(char *velodromo[10][MAX_LEN_VELODROMO], int comprimento_velodromo, bool debug) {
     FILE *saida = debug ? stderr : stdout;
 
     int linhas = 10;
-    int colunas = comprimento_velodromo/10;
+    int colunas = comprimento_velodromo;
 
     for(int i = linhas-1; i >= 0; i--) {
         for(int j = 0; j < colunas; j++) {
@@ -112,7 +111,7 @@ void printa_velodromo(char *velodromo[10][MAX_LEN_PISTA], int comprimento_velodr
 }
 
 void posiciona_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2],
-                        char *velodromo[10][MAX_LEN_PISTA],
+                        char *velodromo[10][MAX_LEN_VELODROMO],
                         int qtd_equipes,
                         int comprimento_pista) {
     //embaralha ciclistas e os posiciona em filas de 5 nas pistas mais internas
@@ -164,7 +163,7 @@ void inicia_corrida(struct_corrida* corrida, bool debug) {
     posiciona_ciclistas(corrida->ciclistas,
                         corrida->velodromo,
                         corrida->qtd_equipes,
-                        corrida->comprimento_velodromo/10);
+                        corrida->comprimento_velodromo);
     printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, debug);
     // primeira volta todos andam 1m a cada 120ms
     // um ciclista de cada equipe larga em fila com ordenação aleatória
@@ -307,12 +306,7 @@ int main(int argc, char **argv) {
     struct_corrida* corrida = malloc(sizeof(struct_corrida));
     corrida->voltas = n;
     corrida->qtd_equipes = k;
-
-    // arredondamos o comprimento do velódromo para múltiplo de 10 que está acima de d
-    // com isso mantemos a propriedade 'número de pistas'*'comprimento da pista'='comprimento do velódromo'
-    // que para valores inteiros e com número de pistas=10, necessita que o comprimento do velódromo seja múltiplo de 10
-    // com isso o comprimento da pista será um número inteiro e poderemos representar o velódromo como matriz
-    corrida->comprimento_velodromo = 10*((d + 9)/10);
+    corrida->comprimento_velodromo = d;
     corrida->volta_atual = 0;
     
     gera_ciclistas(corrida->ciclistas, corrida->qtd_equipes);
