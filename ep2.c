@@ -134,21 +134,29 @@ void posiciona_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2],
     for(int coluna = 0; coluna < qtd_filas; coluna++) {
         if(coluna == qtd_filas - 1 && len_ultima_fila != 0) {
             for(int pista = 0; pista < len_ultima_fila; pista++) {
-                c_ativos[idx]->coluna = coluna;
+                c_ativos[idx]->coluna = comprimento_pista-(1+coluna);
                 c_ativos[idx]->pista = pista;
                 velodromo[pista][comprimento_pista-(1+coluna)] = c_ativos[idx++]->nome;
             }
         }
         else{
             for(int pista = 0; pista<5; pista++) {
-                c_ativos[idx]->coluna = coluna;
+                c_ativos[idx]->coluna = comprimento_pista-(1+coluna);
                 c_ativos[idx]->pista = pista;
                 velodromo[pista][comprimento_pista-(1+coluna)] = c_ativos[idx++]->nome;
             }
         }
     }
 
-    // posiciona ciclistas inativos
+    // posiciona ciclistas descansando
+    idx = 0;
+    int pista_externa = QTD_PISTAS-1;
+    for(int coluna = 0; coluna < qtd_equipes; coluna++) {
+        c_descansando[idx]->coluna = comprimento_pista-(1+2*coluna);
+        c_descansando[idx]->pista = pista_externa;
+        velodromo[pista_externa][comprimento_pista-(1+2*coluna)] = c_descansando[idx]->nome;
+        idx++;
+    }
 
 }
 
