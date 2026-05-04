@@ -86,13 +86,67 @@ void get_ciclistas_ativos(struct_ciclista *ciclistas[MAX_EQUIPES*2],
     }
 }
 
+void embaralha_ciclistas_ativos(struct_ciclista *c_ativos[MAX_EQUIPES],
+                                int qtd_equipes) {
+    int idx_antigo, idx_novo;
+    struct_ciclista *c_temp, *c_antigo;
+
+    idx_antigo = 0;
+    for(int i = 0; i < qtd_equipes; i++) {
+        idx_novo = rand() % qtd_equipes;
+        c_antigo = c_ativos[idx_antigo];
+        c_temp = c_ativos[idx_novo];
+        c_ativos[idx_novo] = c_antigo;
+        c_ativos[idx_antigo] = c_temp;
+        idx_antigo = idx_novo;
+    }
+}
+
+void printa_velodromo(char *velodromo[10][MAX_LEN_PISTA], int comprimento_velodromo, bool debug) {
+    FILE *saida = debug ? stderr : stdout;
+
+    int linhas = 10;
+    int colunas = comprimento_velodromo/10;
+
+    for(int i = linhas-1; i >= 0; i--) {
+        for(int j = 0; j < colunas; j++) {
+            char *display_string = velodromo[i][j] == NULL ? ". " : velodromo[i][j];
+            fprintf(saida, "%s ", display_string);
+        }
+        fprintf(saida, "\n");
+    }
+}
+
 void posiciona_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2],
                         char *velodromo[10][MAX_LEN_PISTA],
-                        int qtd_equipes) {
+                        int qtd_equipes,
+                        int comprimento_pista) {
+    //embaralha ciclistas e os posiciona em filas de 5 nas pistas mais internas
     struct_ciclista* c_ativos[MAX_EQUIPES];
 
     get_ciclistas_ativos(ciclistas, c_ativos, qtd_equipes);
-    printa_ciclistas_ativos(c_ativos, qtd_equipes);
+    embaralha_ciclistas_ativos(c_ativos, qtd_equipes);
+    
+    int len_ultima_fila = qtd_equipes % 5;
+    int qtd_filas = qtd_equipes / 5; // divisão inteira
+    int idx = 0;
+
+    for(int coluna = 0; coluna < qtd_filas; coluna++) {
+        if(coluna == qtd_filas - 1 && len_ultima_fila != 0) {
+            for(int pista = 0; pista < len_ultima_fila; pista++) {
+                c_ativos[idx]->coluna = coluna;
+                c_ativos[idx]->pista = pista;
+                velodromo[pista][comprimento_pista-(1+coluna)] = c_ativos[idx++]->nome;
+            }
+        }
+        else{
+            for(int pista = 0; pista<5; pista++) {
+                c_ativos[idx]->coluna = coluna;
+                c_ativos[idx]->pista = pista;
+                velodromo[pista][comprimento_pista-(1+coluna)] = c_ativos[idx++]->nome;
+            }
+        }
+    }
 }
 
 void inicia_corrida(struct_corrida* corrida, bool debug) {
@@ -102,7 +156,11 @@ void inicia_corrida(struct_corrida* corrida, bool debug) {
         sprintf(corrida->ciclistas[idx]->estado, "ativo");
     }
 
-    posiciona_ciclistas(corrida->ciclistas, corrida->velodromo, corrida->qtd_equipes);
+    posiciona_ciclistas(corrida->ciclistas,
+                        corrida->velodromo,
+                        corrida->qtd_equipes,
+                        corrida->comprimento_velodromo/10);
+    printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, debug);
     // primeira volta todos andam 1m a cada 120ms
     // um ciclista de cada equipe larga em fila com ordenação aleatória
     // largam antes da linha de chegada, com 5 ciclistas no máximo lado a lado nas pistas internas
@@ -141,6 +199,10 @@ void arbitro(struct_corrida* corrida, bool debug) {
 
     //é necessário dar_free nos dados de cada ciclista que foram alocados em gera_ciclistas
     //free(ciclistas_array[i]);
+
+    //   a cada 60ms imprime na stderr o velódromo com a posição de cada ciclista
+    //   não imprime o relatório ao final de cada volta, apenas ao final da corrida
+    //   fprintf(stderr, );
 }
 
 void* ciclista(void* arg) {
@@ -157,27 +219,6 @@ void* ciclista(void* arg) {
     //   a ciclista que entrou em recuperação vai para a pista mais externa e pedala a 15km/h
     // atualiza sua posição no velódromo (seção crítica), remove identificador na posição antiga
     return NULL;
-}
-
-// main
-// flag debug
-//   a cada 60ms imprime na stderr o velódromo com a posição de cada ciclista
-//   não imprime o relatório ao final de cada volta, apenas ao final da corrida
-//   fprintf(stderr, );
-
-void printa_velodromo(char *velodromo[10][MAX_LEN_PISTA], int comprimento_velodromo, bool debug) {
-    FILE *saida = debug ? stderr : stdout;
-
-    int linhas = 10;
-    int colunas = comprimento_velodromo/10;
-
-    for(int i = linhas-1; i >= 0; i--) {
-        for(int j = 0; j < colunas; j++) {
-            char *display_string = velodromo[i][j] == NULL ? ". " : velodromo[i][j];
-            fprintf(saida, "%s ", display_string);
-        }
-        fprintf(saida, "\n");
-    }
 }
 
 bool check_debug_flag(char *debug_arg, int argc) {
@@ -248,7 +289,6 @@ int main(int argc, char **argv) {
     int d = atoi(argv[2]);
     int k = atoi(argv[3]);
     char *exec_mode = argv[4];
-    printf("%d, %d, %d, %s\n", n, d, k, exec_mode);
     srand(time(NULL));
 
     struct_corrida* corrida = malloc(sizeof(struct_corrida));
@@ -257,8 +297,6 @@ int main(int argc, char **argv) {
     corrida->comprimento_velodromo = d;
     corrida->volta_atual = 0;
     
-    printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, debug);
-
     gera_ciclistas(corrida->ciclistas, corrida->qtd_equipes);
     gera_equipes(corrida->equipes, corrida->qtd_equipes);
 
