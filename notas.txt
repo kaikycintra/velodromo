@@ -1,0 +1,5 @@
+https://homepages.dcc.ufmg.br/~coutinho/pthreads/ProgramandoComThreads.pdf
+man pthreads
+man pthread_join
+man pthread_kill
+https://stackoverflow.com/questions/2128728/allocate-matrix-in-c
