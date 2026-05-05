@@ -297,7 +297,6 @@ void* ciclista(void* arg) {
         else {
             reposiciona_pista(dados->ciclista, dados->velodromo);
         }
-        pthread_mutex_unlock (&mutex_velodromo);
 
         int coluna_nova = dados->ciclista->coluna;
 
@@ -337,6 +336,7 @@ void* ciclista(void* arg) {
             }
         }
         
+        pthread_mutex_unlock (&mutex_velodromo);        
         pthread_barrier_wait(&barreira_passo); 
         pthread_barrier_wait(&barreira_passo);
     }
