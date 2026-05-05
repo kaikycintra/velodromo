@@ -47,7 +47,8 @@ typedef struct {
     int voltas;
     int qtd_equipes;
     int comprimento_velodromo; // comprimento de cada pista
-    int volta_atual; // volta atual da equipe em primeiro lugar
+    int volta_atual; // volta atual da equipe em último lugar, esclarecido por email
+    int volta_avancada; // volta atual do primeiro lugar da corrida
     char *velodromo[QTD_PISTAS][MAX_LEN_VELODROMO];
     struct_equipe *equipes[MAX_EQUIPES];
     struct_ciclista *ciclistas[MAX_EQUIPES*2];
@@ -370,6 +371,63 @@ void printa_equipes(struct_equipe *equipes[], int qtd_equipes) {
     }
 }
 
+void get_voltas_equipes(struct_equipe *equipes[], int qtd_equipes, int *voltas) {
+    for(int i = 0; i < qtd_equipes; i++) {
+        voltas[i] = equipes[i]->volta_atual;
+    }
+}
+
+int get_volta_atual(int voltas[], int qtd_equipes) {
+    // volta é concluída quando o último ciclista a encerra (esclarecido por email)
+    // então achamos o mínimo do array de voltas das equipes
+    int min = voltas[0];
+
+    for (int i = 1; i < qtd_equipes; i++) {
+        if (voltas[i] < min) {
+            min = voltas[i];
+        }
+    }
+
+    return min;
+}
+
+int get_volta_avancada(int voltas[], int qtd_equipes) {
+    // volta avançada é a volta atual do primeiro lugar
+    // usamos esse dado para atribuir pontos aos primeiros que avançam uma volta
+    int max = voltas[0];
+
+    for (int i = 1; i < qtd_equipes; i++) {
+        if (voltas[i] > max) {
+            max = voltas[i];
+        }
+    }
+
+    return max;
+}
+void atribui_pontos(struct_equipe *equipes[],
+                    int qtd_equipes,
+                    int volta_avancada,
+                    int voltas[],
+                    int novas_voltas[]) {
+    // todos que avançaram a volta juntos recebem pontos
+    for(int i = 0; i < qtd_equipes; i++) {
+        if(novas_voltas[i] > voltas[i]) {
+            equipes[i]->pontos++;
+        }
+    }
+}
+
+void ranqueia_equipes(struct_equipe *equipes[], struct_equipe *equipes_rank[], int qtd_equipes) {
+    // empates ao final da prova devem ser resolvidos aleatoriamente
+    for(int i = 0; i < qtd_equipes; i++) {
+        equipes[i]->pontos
+    }
+}
+
+void printa_relatorio_final(struct_equipe *equipes) {
+    // posição da equipe, instante de tempo em que finalizaram a corrida, qtd de voltas vencidas
+}
+
 void arbitro(struct_corrida* corrida, bool debug) {
     posiciona_inicio_corrida(corrida, debug);
 
@@ -390,7 +448,26 @@ void arbitro(struct_corrida* corrida, bool debug) {
     }
 
     while(!acabou_corrida(corrida->equipes, corrida->qtd_equipes)) {
+        int volta_antiga = corrida->volta_atual;
+        int volta_avancada_antiga = corrida->volta_avancada;
+        int voltas[corrida->qtd_equipes], novas_voltas[corrida->qtd_equipes];
+        get_voltas_equipes(corrida->equipes, corrida->qtd_equipes, voltas);
+
         pthread_barrier_wait(&barreira_passo);
+        
+        get_voltas_equipes(corrida->equipes, corrida->qtd_equipes, novas_voltas);
+        corrida->volta_atual = get_volta_atual(novas_voltas, corrida->qtd_equipes);
+        corrida->volta_avancada = get_volta_avancada(novas_voltas, corrida->qtd_equipes);
+        
+        
+        if(corrida->volta_avancada > volta_avancada_antiga) {
+            atribui_pontos(corrida->equipes, corrida->qtd_equipes, corrida->volta_avancada, voltas, novas_voltas);
+        }
+        
+        if(corrida->volta_atual > volta_antiga && !debug) {
+            printf("fim da volta: %d\n", volta_antiga+1);
+            printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, false);
+        }
 
         if(debug) {
             fprintf(stderr, "------------------------------\n");
@@ -413,28 +490,10 @@ void arbitro(struct_corrida* corrida, bool debug) {
     pthread_mutex_destroy(&mutex_velodromo);
     pthread_barrier_destroy(&barreira_passo);
     
+    // é necessário dar_free nos dados ao final da corrida, ciclistas, ciclistas_args, equipes e corrida
+    
     // versão ingênua, um semáforo para controlar acesso à matriz velódromo
     // versão eficiente, um semáforo para cada posição ou coluna da matriz
-
-    // caso duas ciclistas completem uma volta ao mesmo tempo, as duas equipes recebem ponto
-    // empates ao final da prova devem ser resolvidos aleatoriamente
-
-    // entidade central
-    // controla relógio global
-    // atualizar colocações
-
-    // imprima as informações na tela;
-    // ao final da prova, faz desempate
-    // imprime relatórios no final de cada volta e da prova
-    //   ao final da volta, imprime a posição de cada equipe
-    //   ao final da corrida, imprime o ranqueamento das equipes
-    //      posição da equipe, instante de tempo em que finalizaram a corrida, qtd de voltas vencidas
-
-    // é necessário dar_free nos dados ao final da corrida, ciclistas, ciclistas_args, equipes e corrida
-
-    //   a cada 60ms imprime na stderr o velódromo com a posição de cada ciclista
-    //   não imprime o relatório ao final de cada volta, apenas ao final da corrida
-    //   fprintf(stderr, );
 
 }
 
@@ -522,6 +581,7 @@ int main(int argc, char **argv) {
     corrida->qtd_equipes = k;
     corrida->comprimento_velodromo = d;
     corrida->volta_atual = 0;
+    corrida->volta_avancada = 0;
     
     gera_ciclistas(corrida->ciclistas, corrida->qtd_equipes);
     gera_equipes(corrida->equipes, corrida->qtd_equipes);
