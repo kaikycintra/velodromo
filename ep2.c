@@ -371,8 +371,8 @@ void atualiza_timers_equipes(struct_equipe *equipes[], int qtd_equipes) {
 
 void printa_equipes(struct_equipe *equipes[], int qtd_equipes) {
     for(int i = 0; i < qtd_equipes; i++) {
-        printf("equipe: %d, pontos: %d, timer: %f\n",
-             i, equipes[i]->pontos, equipes[i]->timer);
+        printf("equipe: %d, pontos: %d, timer: %f, volta: %d\n",
+             i, equipes[i]->pontos, equipes[i]->timer, equipes[i]->volta_atual);
     }
 }
 
@@ -411,12 +411,10 @@ int get_volta_avancada(int voltas[], int qtd_equipes) {
 }
 void atribui_pontos(struct_equipe *equipes[],
                     int qtd_equipes,
-                    int volta_avancada,
-                    int voltas[],
-                    int novas_voltas[]) {
+                    int volta_avancada) {
     // todos que avançaram a volta juntos recebem pontos
     for(int i = 0; i < qtd_equipes; i++) {
-        if(novas_voltas[i] > voltas[i]) {
+        if(equipes[i]->volta_atual == volta_avancada) {
             equipes[i]->pontos++;
         }
     }
@@ -497,41 +495,43 @@ void arbitro(struct_corrida* corrida, bool debug) {
         pthread_create(&t_ciclista[i], NULL, ciclista, arg_i);
     }
 
+    sleep(1);
     while(!acabou_corrida(corrida->equipes, corrida->qtd_equipes)) {
-        int volta_antiga = corrida->volta_atual;
-        int volta_avancada_antiga = corrida->volta_avancada;
-        int voltas[corrida->qtd_equipes], novas_voltas[corrida->qtd_equipes];
-        get_voltas_equipes(corrida->equipes, corrida->qtd_equipes, voltas);
-
         pthread_barrier_wait(&barreira_passo);
         
-        get_voltas_equipes(corrida->equipes, corrida->qtd_equipes, novas_voltas);
-        corrida->volta_atual = get_volta_atual(novas_voltas, corrida->qtd_equipes);
-        corrida->volta_avancada = get_volta_avancada(novas_voltas, corrida->qtd_equipes);
+        remove_equipes_finalizaram(corrida);
+        int volta_antiga = corrida->volta_atual;
+        int volta_avancada_antiga = corrida->volta_avancada;
         
+        pthread_barrier_wait(&barreira_passo);
+
+        int voltas[corrida->qtd_equipes];        
+        get_voltas_equipes(corrida->equipes, corrida->qtd_equipes, voltas);
+        corrida->volta_atual = get_volta_atual(voltas, corrida->qtd_equipes);
+        corrida->volta_avancada = get_volta_avancada(voltas, corrida->qtd_equipes);
         
         if(corrida->volta_avancada > volta_avancada_antiga) {
-            atribui_pontos(corrida->equipes, corrida->qtd_equipes, corrida->volta_avancada, voltas, novas_voltas);
+            atribui_pontos(corrida->equipes, corrida->qtd_equipes, corrida->volta_avancada);
         }
         
         if(corrida->volta_atual > volta_antiga && !debug) {
             printf("fim da volta: %d\n", volta_antiga+1);
+            remove_equipes_finalizaram(corrida);
             printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, false);
         }
 
         if(debug) {
             fprintf(stderr, "------------------------------\n");
             printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, true);
-            //printa_ciclistas(corrida->ciclistas, corrida->qtd_equipes*2);
+            printf("volta avançada: %d\n", corrida->volta_avancada);
+            printa_equipes(corrida->equipes, corrida->qtd_equipes);
         }
 
         atualiza_timers_equipes(corrida->equipes, corrida->qtd_equipes);
-        remove_equipes_finalizaram(corrida);
-
-        pthread_barrier_wait(&barreira_passo);
         if(debug) usleep(QUANTUM*1000);
     }
 
+    remove_equipes_finalizaram(corrida);
     printa_relatorio_final(corrida->equipes, corrida->qtd_equipes);
 
     for(int i = 0; i < corrida->qtd_equipes*2; i++) {
@@ -541,7 +541,7 @@ void arbitro(struct_corrida* corrida, bool debug) {
     pthread_mutex_destroy(&mutex_velodromo);
     pthread_barrier_destroy(&barreira_passo);
     
-    // é necessário dar_free nos dados ao final da corrida, ciclistas, ciclistas_args, equipes e corrida
+    // seria bom dar_free nos dados ao final da corrida, ciclistas, ciclistas_args, equipes e corrida
     
     // versão ingênua, um semáforo para controlar acesso à matriz velódromo
     // versão eficiente, um semáforo para cada posição ou coluna da matriz
