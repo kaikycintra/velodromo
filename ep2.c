@@ -217,7 +217,7 @@ void avanca_posicao(struct_ciclista *ciclista,
     // se não, se pode ultrapassar
     else if(pode_ultrapassar(pista, coluna, comprimento_pista, velodromo)) {
         for(int p = pista; p < QTD_PISTAS-1; p++) {
-            if(velodromo[p][coluna+1] == NULL) {
+            if(velodromo[p][(coluna + 1) % comprimento_pista] == NULL) {
                 pista = p;
                 coluna = (coluna + 1) % comprimento_pista;
                 break;
@@ -374,7 +374,7 @@ void arbitro(struct_corrida* corrida, bool debug) {
         }
 
         pthread_barrier_wait(&barreira_passo);
-        sleep(QUANTUM/30);
+        sleep(QUANTUM/50);
     }
 
     for(int i = 0; i < corrida->qtd_equipes * 2; i++) {
