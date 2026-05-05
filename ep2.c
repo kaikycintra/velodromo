@@ -291,7 +291,7 @@ void* ciclista(void* arg) {
         
         int coluna_antiga = dados->ciclista->coluna;
         // ou avança posição ou se reposiciona na pista (sem contar ultrapassagens)
-        if(dados->ciclista->tempo_restante_para_andar == 0) {
+        if(dados->ciclista->tempo_restante_para_andar <= 0) {
             avanca_posicao(dados->ciclista, dados->velodromo, dados->comprimento_velodromo);
         }
         else {
@@ -366,15 +366,17 @@ void arbitro(struct_corrida* corrida, bool debug) {
     }
 
     sleep(1); // dorme para garantir que todas as threads estão esperando sinal do árbitro
-    while(acabou_corrida(corrida->equipes, corrida->qtd_equipes) == false) {
+    while(!acabou_corrida(corrida->equipes, corrida->qtd_equipes)) {
         pthread_barrier_wait(&barreira_passo);
 
         if(debug) {
+            fprintf(stderr, "------------------------------\n");
             printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, true);
+            //printa_ciclistas(corrida->ciclistas, corrida->qtd_equipes*2);
         }
 
         pthread_barrier_wait(&barreira_passo);
-        sleep(QUANTUM/50);
+        if(debug) sleep(QUANTUM/1000);
     }
 
     for(int i = 0; i < corrida->qtd_equipes * 2; i++) {

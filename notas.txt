@@ -20,7 +20,6 @@ https://stackoverflow.com/questions/11751514/when-is-it-more-appropriate-to-use-
 https://csresources.github.io/SystemProgrammingWiki/SystemProgramming/Synchronization,-Part-6:-Implementing-a-barrier/
 https://csresources.github.io/SystemProgrammingWiki/SystemProgramming/Sample-program-using-pthread-barriers/
 
-consertar revezamento
 falta implementar versão eficiente
 falta implementar detecção de voltas e pontuação do árbitro
 falta limpar memória no árbitro
