@@ -38,6 +38,7 @@ typedef struct {
 typedef struct {
     int pontos;
     int volta_atual;
+    float timer; // tempo acumulado em corrida em segundos
     bool terminou;
     bool revezando;
 } struct_equipe;
@@ -65,19 +66,6 @@ void printa_ciclistas(struct_ciclista *ciclistas[], int arr_len) {
     for(int i = 0; i < arr_len; i++) {
         struct_ciclista *c = ciclistas[i];
         printf("ciclista: %s, equipe: %d, estado: %s\n", c->nome, c->equipe, c->estado);
-    }
-}
-
-void printa_equipes(struct_equipe *equipes[MAX_EQUIPES],
-                    struct_ciclista *ciclistas[MAX_EQUIPES*2],
-                    int qtd_equipes) {
-    for(int i = 0; i < qtd_equipes; i++) {
-        struct_equipe *e = equipes[i];
-        struct_ciclista *c1 = ciclistas[2*i];
-        struct_ciclista *c2 = ciclistas[2*i+1];
-        printf("equipe: %d, volta atual: %d, pontos: %d\n", i, e->volta_atual, e->pontos);
-        printf("ciclista: %s, equipe: %d, estado: %s\n", c1->nome, c1->equipe, c1->estado);
-        printf("ciclista: %s, equipe: %d, estado: %s\n", c2->nome, c2->equipe, c2->estado);
     }
 }
 
@@ -367,6 +355,21 @@ int count_equipes_finalizaram(struct_equipe *equipes[], int qtd_equipes) {
     return count;
 }
 
+void atualiza_timers_equipes(struct_equipe *equipes[], int qtd_equipes) {
+    for(int i = 0; i < qtd_equipes; i++) {
+        if(!equipes[i]->terminou) {
+            equipes[i]->timer = equipes[i]->timer + QUANTUM/1000.0;
+        }
+    }
+}
+
+void printa_equipes(struct_equipe *equipes[], int qtd_equipes) {
+    for(int i = 0; i < qtd_equipes; i++) {
+        printf("equipe: %d, pontos: %d, timer: %f\n",
+             i, equipes[i]->pontos, equipes[i]->timer);
+    }
+}
+
 void arbitro(struct_corrida* corrida, bool debug) {
     posiciona_inicio_corrida(corrida, debug);
 
@@ -395,10 +398,13 @@ void arbitro(struct_corrida* corrida, bool debug) {
             //printa_ciclistas(corrida->ciclistas, corrida->qtd_equipes*2);
         }
 
+        atualiza_timers_equipes(corrida->equipes, corrida->qtd_equipes);
+
         pthread_barrier_wait(&barreira_passo);
         if(debug) sleep(QUANTUM/1000);
     }
 
+    printa_equipes(corrida->equipes, corrida->qtd_equipes);
 
     for(int i = 0; i < corrida->qtd_equipes*2; i++) {
         pthread_kill(t_ciclista[i], 9);
@@ -410,23 +416,16 @@ void arbitro(struct_corrida* corrida, bool debug) {
     // versão ingênua, um semáforo para controlar acesso à matriz velódromo
     // versão eficiente, um semáforo para cada posição ou coluna da matriz
 
-    // quando uma equipe completa a prova, as suas duas threads ciclistas devem ser destruídas
-
     // caso duas ciclistas completem uma volta ao mesmo tempo, as duas equipes recebem ponto
     // empates ao final da prova devem ser resolvidos aleatoriamente
 
     // entidade central
-    // imprime posições na tela
     // controla relógio global
     // atualizar colocações
-    // enquanto (houver ciclistas):
-    // faça ciclistas andarem 1 passo de forma concorrente;
-    // destrua as threads de ciclistas que precisam ser destruídas;
-    // avance o relógio em 60ms;
+
     // imprima as informações na tela;
-    // ao final da prova, faz desempate e destrói as threads
+    // ao final da prova, faz desempate
     // imprime relatórios no final de cada volta e da prova
-    //   as posições devem avançar da direita para a esquerda
     //   ao final da volta, imprime a posição de cada equipe
     //   ao final da corrida, imprime o ranqueamento das equipes
     //      posição da equipe, instante de tempo em que finalizaram a corrida, qtd de voltas vencidas
