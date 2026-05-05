@@ -326,7 +326,8 @@ void* ciclista(void* arg) {
         if(dados->equipe->revezando && strcmp(dados->ciclista->estado, "descansando")==0) {
             char *nome = dados->ciclista->nome;
             for(int i = 0; i < QTD_PISTAS; i++) {
-                if(strncmp(dados->velodromo[i][dados->ciclista->coluna], nome, strlen(nome)-1) == 0) {
+                char *pos = dados->velodromo[i][dados->ciclista->coluna];
+                if(pos != NULL && strncmp(pos, nome, strlen(nome)-1) == 0){
                     sprintf(dados->ciclista->estado, "ativo");
                     sprintf(dados->colega->estado, "descansando");
                     dados->equipe->revezando = false;
