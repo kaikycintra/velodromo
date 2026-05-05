@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <string.h>
+#include <signal.h>
 
 #define QTD_PISTAS 10
 #define MIN_VOLTAS 10
@@ -21,7 +22,6 @@
 #define QUANTUM 60 // intervalo de tempo em ms que define um passo da simulação
 
 pthread_mutex_t mutex_velodromo; // usado para implementação ineficiente
-pthread_cond_t sinal_destruicao;
 pthread_barrier_t barreira_passo;
 
 typedef struct {
@@ -184,7 +184,7 @@ void posiciona_inicio_corrida(struct_corrida* corrida, bool debug) {
 }
 
 bool acabou_corrida(struct_equipe *equipes[], int qtd_equipes) {
-    for(int i = 0; i < qtd_equipes*2; i++) {
+    for(int i = 0; i < qtd_equipes; i++) {
         if(equipes[i]->terminou == false) return false;
     }
     return true;
@@ -313,6 +313,13 @@ void* ciclista(void* arg) {
             if(dados->ciclista->voltas_realizadas >= 5) {
                 dados->equipe->revezando = true;
             }
+            
+            // sai da pista e informa colega para sair
+            if(dados->equipe->volta_atual == dados->voltas) {
+                dados->equipe->terminou = true;
+                dados->velodromo[dados->ciclista->pista][dados->ciclista->coluna] = NULL;
+                dados->velodromo[dados->colega->pista][dados->colega->coluna] = NULL;
+            }
         }
 
         // se está revezando, atualiza a própria velocidade
@@ -336,13 +343,28 @@ void* ciclista(void* arg) {
             }
         }
         
-        pthread_mutex_unlock (&mutex_velodromo);        
-        pthread_barrier_wait(&barreira_passo); 
+        pthread_mutex_unlock (&mutex_velodromo);      
         pthread_barrier_wait(&barreira_passo);
+        pthread_barrier_wait(&barreira_passo); 
     }
 
-    pthread_cond_wait(&sinal_destruicao, &mutex_velodromo);
+    while(true) {
+        pthread_barrier_wait(&barreira_passo);
+        pthread_barrier_wait(&barreira_passo); 
+    }
+
     return NULL;
+}
+
+int count_equipes_finalizaram(struct_equipe *equipes[], int qtd_equipes) {
+    int count = 0;
+    for(int i = 0; i < qtd_equipes; i++) {
+        if(equipes[i]->terminou) {
+            count++;
+        }
+    }
+
+    return count;
 }
 
 void arbitro(struct_corrida* corrida, bool debug) {
@@ -350,7 +372,6 @@ void arbitro(struct_corrida* corrida, bool debug) {
 
     pthread_mutex_init(&mutex_velodromo, NULL);
     pthread_barrier_init(&barreira_passo, NULL, corrida->qtd_equipes*2+1);
-    pthread_cond_init(&sinal_destruicao, NULL);
     pthread_t t_ciclista[corrida->qtd_equipes*2];
 
     
@@ -365,7 +386,6 @@ void arbitro(struct_corrida* corrida, bool debug) {
         pthread_create(&t_ciclista[i], NULL, ciclista, arg_i);
     }
 
-    sleep(1); // dorme para garantir que todas as threads estão esperando sinal do árbitro
     while(!acabou_corrida(corrida->equipes, corrida->qtd_equipes)) {
         pthread_barrier_wait(&barreira_passo);
 
@@ -379,13 +399,13 @@ void arbitro(struct_corrida* corrida, bool debug) {
         if(debug) sleep(QUANTUM/1000);
     }
 
-    for(int i = 0; i < corrida->qtd_equipes * 2; i++) {
-        pthread_join(t_ciclista[i], NULL);
+
+    for(int i = 0; i < corrida->qtd_equipes*2; i++) {
+        pthread_kill(t_ciclista[i], 9);
     }
     
     pthread_mutex_destroy(&mutex_velodromo);
     pthread_barrier_destroy(&barreira_passo);
-    pthread_cond_destroy(&sinal_destruicao);
     
     // versão ingênua, um semáforo para controlar acesso à matriz velódromo
     // versão eficiente, um semáforo para cada posição ou coluna da matriz
