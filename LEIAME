@@ -1,4 +1,12 @@
 Para compilar o ep2 basta rodar o comando 'make ep2'
-Ele pode posteriormente ser executado com './ep2'
+Ele pode posteriormente ser executado com './ep2 <n> <d> <k> <i|e> --debug'
 
-Falar sobre parâmetros de entrada
+n é o número inteiro de voltas da corrida
+d é o comprimento inteiro em metros do velódromo
+k é o número inteiro de equipes
+o quarto parâmetro deve ser 'i' ou 'e', para implementação ineficiente e eficiente
+a flag debug é opcional e mostra estados intermediários da simulação
+
+os valores dos parâmetros são limitados pelo código mas não verificados, caso
+sejam passados valores fora dos intervalos detalhados nos requisitos do EP
+provavelmente ocorrerá segmentation fault.
