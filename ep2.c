@@ -22,7 +22,9 @@
 #define QUANTUM 60 // intervalo de tempo em ms que define um passo da simulação
 
 pthread_mutex_t mutex_velodromo; // usado para implementação ineficiente
+pthread_mutex_t mutex_colunas[MAX_LEN_VELODROMO];
 pthread_barrier_t barreira_passo;
+bool exec_eficiente;
 
 typedef struct {
     int pista;
@@ -277,7 +279,21 @@ void atualiza_velocidade(struct_ciclista *ciclista, int velocidade_colega, bool 
 void* ciclista(void* arg) {
     struct_ciclista_arg* dados = (struct_ciclista_arg*) arg;
     while(dados->equipe->terminou == false) {
-        pthread_mutex_lock (&mutex_velodromo);
+        int col_atual = dados->ciclista->coluna;
+        int col_proxima = (col_atual + 1) % dados->comprimento_velodromo;
+
+        if (!exec_eficiente) {
+            pthread_mutex_lock(&mutex_velodromo);
+        }
+        else {
+            if (col_atual < col_proxima) {
+                pthread_mutex_lock(&mutex_colunas[col_atual]);
+                pthread_mutex_lock(&mutex_colunas[col_proxima]);
+            } else {
+                pthread_mutex_lock(&mutex_colunas[col_proxima]);
+                pthread_mutex_lock(&mutex_colunas[col_atual]);
+            }
+        }
         
         int coluna_antiga = dados->ciclista->coluna;
         // ou avança posição ou se reposiciona na pista (sem contar ultrapassagens)
@@ -337,7 +353,14 @@ void* ciclista(void* arg) {
             }
         }
         
-        pthread_mutex_unlock (&mutex_velodromo);      
+        if(!exec_eficiente) {
+            pthread_mutex_unlock(&mutex_velodromo);
+        }
+        else {
+            pthread_mutex_unlock(&mutex_colunas[col_atual]);
+            pthread_mutex_unlock(&mutex_colunas[col_proxima]);
+        }
+
         pthread_barrier_wait(&barreira_passo);
         pthread_barrier_wait(&barreira_passo); 
     }
@@ -479,7 +502,15 @@ void remove_equipes_finalizaram(struct_corrida* corrida) {
 void arbitro(struct_corrida* corrida, bool debug) {
     posiciona_inicio_corrida(corrida, debug);
 
-    pthread_mutex_init(&mutex_velodromo, NULL);
+    if (exec_eficiente) {
+        for (int i = 0; i < corrida->comprimento_velodromo; i++) {
+            pthread_mutex_init(&mutex_colunas[i], NULL);
+        }
+    }
+    else {
+        pthread_mutex_init(&mutex_velodromo, NULL);
+    }
+
     pthread_barrier_init(&barreira_passo, NULL, corrida->qtd_equipes*2+1);
     pthread_t t_ciclista[corrida->qtd_equipes*2];
 
@@ -535,17 +566,10 @@ void arbitro(struct_corrida* corrida, bool debug) {
     printa_relatorio_final(corrida->equipes, corrida->qtd_equipes);
 
     for(int i = 0; i < corrida->qtd_equipes*2; i++) {
-        pthread_kill(t_ciclista[i], 9);
+        pthread_kill(t_ciclista[i], 9); // encerra as threads e programa
     }
     
-    pthread_mutex_destroy(&mutex_velodromo);
-    pthread_barrier_destroy(&barreira_passo);
-    
     // seria bom dar_free nos dados ao final da corrida, ciclistas, ciclistas_args, equipes e corrida
-    
-    // versão ingênua, um semáforo para controlar acesso à matriz velódromo
-    // versão eficiente, um semáforo para cada posição ou coluna da matriz
-
 }
 
 bool check_debug_flag(char *debug_arg, int argc) {
@@ -626,7 +650,7 @@ int main(int argc, char **argv) {
     int n = atoi(argv[1]);
     int d = atoi(argv[2]);
     int k = atoi(argv[3]);
-    char *exec_mode = argv[4];
+    exec_eficiente = (strcmp(argv[4], "e") == 0);
     srand(time(NULL));
 
     struct_corrida* corrida = malloc(sizeof(struct_corrida));

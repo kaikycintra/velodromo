@@ -21,5 +21,3 @@ https://csresources.github.io/SystemProgrammingWiki/SystemProgramming/Synchroniz
 https://csresources.github.io/SystemProgrammingWiki/SystemProgramming/Sample-program-using-pthread-barriers/
 https://www.geeksforgeeks.org/c/c-program-to-find-minimum-value-in-array/
 https://stackoverflow.com/questions/4760687/cancelling-a-thread-using-pthread-cancel-good-practice-or-bad
-
-falta implementar versão eficiente
