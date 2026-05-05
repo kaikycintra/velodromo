@@ -33,6 +33,7 @@ typedef struct {
     char estado[12]; // ativo, descansando
     char nome[12]; // número da equipe + a|b
     int equipe;
+    bool cruzou_largada;
 } struct_ciclista;
 
 typedef struct {
@@ -295,8 +296,15 @@ void* ciclista(void* arg) {
         
         // se completou uma volta como ciclista ativo
         if(coluna_nova < coluna_antiga && strcmp(dados->ciclista->estado, "ativo") == 0) {
-            dados->equipe->volta_atual++;
-            dados->ciclista->voltas_realizadas++;
+            if(!dados->ciclista->cruzou_largada) {
+                dados->ciclista->cruzou_largada = true;
+                dados->colega->cruzou_largada = true;
+            }
+            else{
+                dados->equipe->volta_atual++;
+                dados->ciclista->voltas_realizadas++;
+            }
+                
             atualiza_velocidade(dados->ciclista, dados->colega->tempo_por_volta, dados->equipe->revezando);
 
             if(dados->ciclista->voltas_realizadas >= 5) {
@@ -583,13 +591,15 @@ void gera_ciclistas(struct_ciclista *ciclistas[MAX_EQUIPES*2], int qtd_equipes) 
         ciclistas[i]->tempo_por_volta = 240;
         ciclistas[i]->tempo_restante_para_andar = 240;
         ciclistas[i]->voltas_realizadas = 0;
-
+        ciclistas[i]->cruzou_largada = false;
+        
         ciclistas[i+1]->equipe = i/2;
         sprintf(ciclistas[i+1]->nome, "%db", i/2);
         sprintf(ciclistas[i+1]->estado, "descansando");
         ciclistas[i+1]->tempo_por_volta = 240;
         ciclistas[i+1]->tempo_restante_para_andar = 240;
         ciclistas[i+1]->voltas_realizadas = 0;
+        ciclistas[i+1]->cruzou_largada = false;
     }
 
     // sorteia ciclistas ativos para cada equipe
