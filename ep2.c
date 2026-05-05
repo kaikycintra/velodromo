@@ -118,7 +118,7 @@ void printa_velodromo(char *velodromo[10][MAX_LEN_VELODROMO], int comprimento_ve
     int colunas = comprimento_velodromo;
 
     for(int i = linhas-1; i >= 0; i--) {
-        for(int j = 0; j < colunas; j++) {
+        for(int j = colunas - 1; j >= 0; j--) {
             char *display_string = velodromo[i][j] == NULL ? ". " : velodromo[i][j];
             fprintf(saida, "%s ", display_string);
         }
