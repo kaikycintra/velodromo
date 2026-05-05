@@ -529,7 +529,7 @@ void arbitro(struct_corrida* corrida, bool debug) {
         remove_equipes_finalizaram(corrida);
 
         pthread_barrier_wait(&barreira_passo);
-        if(debug) sleep(QUANTUM/1000);
+        if(debug) usleep(QUANTUM*1000);
     }
 
     printa_relatorio_final(corrida->equipes, corrida->qtd_equipes);
