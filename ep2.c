@@ -227,7 +227,6 @@ void avanca_posicao(struct_ciclista *ciclista,
     
     else {
         // se não, espera alguém sair da frente (como pedido nas especificações)
-        ciclista->tempo_restante_para_andar = ciclista->tempo_restante_para_andar - 60;
         return;
     }
 
@@ -297,11 +296,14 @@ void* ciclista(void* arg) {
         }
         else {
             reposiciona_pista(dados->ciclista, dados->velodromo);
-            dados->ciclista->tempo_restante_para_andar = dados->ciclista->tempo_restante_para_andar - 60;
         }
         pthread_mutex_unlock (&mutex_velodromo);
 
         int coluna_nova = dados->ciclista->coluna;
+
+        if(coluna_nova == coluna_antiga) {
+            dados->ciclista->tempo_restante_para_andar = dados->ciclista->tempo_restante_para_andar - 60;
+        }
         
         // se completou uma volta como ciclista ativo
         if(coluna_nova < coluna_antiga && strcmp(dados->ciclista->estado, "ativo") == 0) {
