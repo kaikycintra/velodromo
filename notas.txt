@@ -15,6 +15,12 @@ https://www.cs.unibo.it/~ghini/didattica/sistop/pthreads_tutorial/POSIX_Threads_
 https://stackoverflow.com/questions/20772476/when-to-use-pthread-condition-variables
 https://www.geeksforgeeks.org/operating-systems/mutex-vs-semaphore/
 man strncmp
+https://homepages.math.uic.edu/~jan/mcs572f16/pthread_barrier_example.c
+https://stackoverflow.com/questions/11751514/when-is-it-more-appropriate-to-use-a-pthread-barrier-instead-of-a-condition-wait
+https://csresources.github.io/SystemProgrammingWiki/SystemProgramming/Synchronization,-Part-6:-Implementing-a-barrier/
+https://csresources.github.io/SystemProgrammingWiki/SystemProgramming/Sample-program-using-pthread-barriers/
 
 falta implementar versão eficiente
-falta implementar sincronização do árbitro e ciclistas
+falta implementar detecção de voltas e pontuação do árbitro
+falta limpar memória no árbitro
+falta printar resultado no árbitro

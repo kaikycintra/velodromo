@@ -1,4 +1,5 @@
 // simula uma corrida Madison em um velódromo
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -20,7 +21,8 @@
 #define QUANTUM 60 // intervalo de tempo em ms que define um passo da simulação
 
 pthread_mutex_t mutex_velodromo; // usado para implementação ineficiente
-pthread_cond_t sinal_arbitro, sinal_destruicao;
+pthread_cond_t sinal_destruicao;
+pthread_barrier_t barreira_passo;
 
 typedef struct {
     int pista;
@@ -188,9 +190,12 @@ bool acabou_corrida(struct_equipe *equipes[], int qtd_equipes) {
     return true;
 }
 
-bool pode_ultrapassar(int pista, int coluna, char *velodromo[10][MAX_LEN_VELODROMO]) {
+bool pode_ultrapassar(int pista,
+                      int coluna,
+                      int comprimento_pista,
+                      char *velodromo[10][MAX_LEN_VELODROMO]) {
     for(int p = pista; p < QTD_PISTAS-1; p++) {
-        if(velodromo[p][coluna+1] == NULL) {
+        if(velodromo[p][(coluna + 1) % comprimento_pista] == NULL) {
             return true;
         }
     }
@@ -205,23 +210,27 @@ void avanca_posicao(struct_ciclista *ciclista,
     int coluna_antiga = coluna, pista_antiga = pista;
 
     // se pode andar para a frente
-    if(velodromo[pista][coluna+1] == NULL) {
-        coluna = coluna+1;
+    if(velodromo[pista][(coluna + 1) % comprimento_pista] == NULL) {
+        coluna = (coluna + 1) % comprimento_pista;
     }
     
     // se não, se pode ultrapassar
-    else if(pode_ultrapassar(pista, coluna, velodromo)) {
+    else if(pode_ultrapassar(pista, coluna, comprimento_pista, velodromo)) {
         for(int p = pista; p < QTD_PISTAS-1; p++) {
             if(velodromo[p][coluna+1] == NULL) {
                 pista = p;
-                coluna = coluna+1;
+                coluna = (coluna + 1) % comprimento_pista;
                 break;
             }
         }
     }
-    // se não, espera alguém sair da frente (como pedido nas especificações)
+    
+    else {
+        // se não, espera alguém sair da frente (como pedido nas especificações)
+        ciclista->tempo_restante_para_andar = ciclista->tempo_restante_para_andar - 60;
+        return;
+    }
 
-    coluna = (coluna == comprimento_pista) ? 0 : coluna; // faz corrida ser circular
     velodromo[pista_antiga][coluna_antiga] = NULL;
     velodromo[pista][coluna] = ciclista->nome;
     ciclista->coluna = coluna;
@@ -245,7 +254,7 @@ void reposiciona_pista(struct_ciclista *ciclista,
         }
     }
     else {
-        for(int p = pista; p <= QTD_PISTAS; p++) {
+        for(int p = pista; p < QTD_PISTAS; p++) {
             if(velodromo[p][coluna] == NULL) {
                 pista = p;
             }
@@ -280,7 +289,6 @@ void* ciclista(void* arg) {
     struct_ciclista_arg* dados = (struct_ciclista_arg*) arg;
     while(dados->equipe->terminou == false) {
         pthread_mutex_lock (&mutex_velodromo);
-        pthread_cond_wait(&sinal_arbitro, &mutex_velodromo);
         
         int coluna_antiga = dados->ciclista->coluna;
         // ou avança posição ou se reposiciona na pista (sem contar ultrapassagens)
@@ -291,6 +299,8 @@ void* ciclista(void* arg) {
             reposiciona_pista(dados->ciclista, dados->velodromo);
             dados->ciclista->tempo_restante_para_andar = dados->ciclista->tempo_restante_para_andar - 60;
         }
+        pthread_mutex_unlock (&mutex_velodromo);
+
         int coluna_nova = dados->ciclista->coluna;
         
         // se completou uma volta como ciclista ativo
@@ -324,7 +334,8 @@ void* ciclista(void* arg) {
             }
         }
         
-        pthread_mutex_unlock (&mutex_velodromo);
+        pthread_barrier_wait(&barreira_passo); 
+        pthread_barrier_wait(&barreira_passo);
     }
 
     pthread_cond_wait(&sinal_destruicao, &mutex_velodromo);
@@ -335,10 +346,11 @@ void arbitro(struct_corrida* corrida, bool debug) {
     posiciona_inicio_corrida(corrida, debug);
 
     pthread_mutex_init(&mutex_velodromo, NULL);
-    pthread_cond_init(&sinal_arbitro, NULL);
+    pthread_barrier_init(&barreira_passo, NULL, corrida->qtd_equipes*2+1);
     pthread_cond_init(&sinal_destruicao, NULL);
     pthread_t t_ciclista[corrida->qtd_equipes*2];
 
+    
     for(int i = 0; i < corrida->qtd_equipes*2; i++) {
         struct_ciclista_arg *arg_i = malloc(sizeof(struct_ciclista_arg));
         arg_i->ciclista = corrida->ciclistas[i];
@@ -351,16 +363,15 @@ void arbitro(struct_corrida* corrida, bool debug) {
     }
 
     sleep(1); // dorme para garantir que todas as threads estão esperando sinal do árbitro
-    printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, debug);
     while(acabou_corrida(corrida->equipes, corrida->qtd_equipes) == false) {
-        pthread_mutex_lock(&mutex_velodromo);
-        pthread_cond_broadcast(&sinal_arbitro); // sinal para threads rodarem, se não terminaram corrida
-        pthread_cond_broadcast(&sinal_destruicao); // sinal para threads encerrarem, se terminaram corrida
-        pthread_mutex_unlock(&mutex_velodromo);
+        pthread_barrier_wait(&barreira_passo);
+
         if(debug) {
             printa_velodromo(corrida->velodromo, corrida->comprimento_velodromo, true);
-        } 
-        sleep(QUANTUM/10);
+        }
+
+        pthread_barrier_wait(&barreira_passo);
+        sleep(QUANTUM/30);
     }
 
     for(int i = 0; i < corrida->qtd_equipes * 2; i++) {
@@ -368,7 +379,7 @@ void arbitro(struct_corrida* corrida, bool debug) {
     }
     
     pthread_mutex_destroy(&mutex_velodromo);
-    pthread_cond_destroy(&sinal_arbitro);
+    pthread_barrier_destroy(&barreira_passo);
     pthread_cond_destroy(&sinal_destruicao);
     
     // versão ingênua, um semáforo para controlar acesso à matriz velódromo
