@@ -303,11 +303,8 @@ void* ciclista(void* arg) {
                 dados->equipe->revezando = true;
             }
             
-            // sai da pista e informa colega para sair
             if(dados->equipe->volta_atual == dados->voltas) {
                 dados->equipe->terminou = true;
-                dados->velodromo[dados->ciclista->pista][dados->ciclista->coluna] = NULL;
-                dados->velodromo[dados->colega->pista][dados->colega->coluna] = NULL;
             }
         }
 
@@ -460,6 +457,18 @@ void printa_relatorio_final(struct_equipe *equipes[], int qtd_equipes) {
                 i + 1, id_equipe, equipes[id_equipe]->pontos, equipes[id_equipe]->timer);
     }
 }
+
+void remove_equipes_finalizaram(struct_corrida* corrida) {
+    for(int i = 0; i < corrida->qtd_equipes; i++) {
+            if(corrida->equipes[i]->terminou) {
+                struct_ciclista *c1 = corrida->ciclistas[i*2];
+                struct_ciclista *c2 = corrida->ciclistas[i*2 + 1];
+                corrida->velodromo[c1->pista][c1->coluna] = NULL;
+                corrida->velodromo[c2->pista][c2->coluna] = NULL;
+            }
+        }
+}
+        
     
 void arbitro(struct_corrida* corrida, bool debug) {
     posiciona_inicio_corrida(corrida, debug);
@@ -509,6 +518,7 @@ void arbitro(struct_corrida* corrida, bool debug) {
         }
 
         atualiza_timers_equipes(corrida->equipes, corrida->qtd_equipes);
+        remove_equipes_finalizaram(corrida);
 
         pthread_barrier_wait(&barreira_passo);
         if(debug) sleep(QUANTUM/1000);
