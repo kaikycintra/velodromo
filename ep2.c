@@ -417,17 +417,50 @@ void atribui_pontos(struct_equipe *equipes[],
     }
 }
 
-void ranqueia_equipes(struct_equipe *equipes[], struct_equipe *equipes_rank[], int qtd_equipes) {
-    // empates ao final da prova devem ser resolvidos aleatoriamente
-    for(int i = 0; i < qtd_equipes; i++) {
-        equipes[i]->pontos
+void ranqueia_equipes(struct_equipe *equipes[], int qtd_equipes, int indices_rank[]) {
+    // bubble sort para ranquear
+    for (int i = 0; i < qtd_equipes; i++) {
+        indices_rank[i] = i;
+    }
+
+    for (int i = 0; i < qtd_equipes - 1; i++) {
+        for (int j = 0; j < qtd_equipes - i - 1; j++) {
+            int idx_atual = indices_rank[j];
+            int idx_proximo = indices_rank[j + 1];
+
+            bool trocar = false;
+
+            if (equipes[idx_atual]->pontos < equipes[idx_proximo]->pontos) {
+                trocar = true;
+            } 
+
+            else if (equipes[idx_atual]->pontos == equipes[idx_proximo]->pontos) {
+                if (rand() % 2 == 0) {
+                    trocar = true;
+                }
+            }
+
+            if (trocar) {
+                int temp = indices_rank[j];
+                indices_rank[j] = indices_rank[j + 1];
+                indices_rank[j + 1] = temp;
+            }
+        }
     }
 }
 
-void printa_relatorio_final(struct_equipe *equipes) {
+void printa_relatorio_final(struct_equipe *equipes[], int qtd_equipes) {
     // posição da equipe, instante de tempo em que finalizaram a corrida, qtd de voltas vencidas
-}
+    int ranking[qtd_equipes];
+    ranqueia_equipes(equipes, qtd_equipes, ranking);
 
+    for (int i = 0; i < qtd_equipes; i++) {
+        int id_equipe = ranking[i];
+        printf("%d Lugar: Equipe %d | Pontos: %d | Tempo: %fs\n", 
+                i + 1, id_equipe, equipes[id_equipe]->pontos, equipes[id_equipe]->timer);
+    }
+}
+    
 void arbitro(struct_corrida* corrida, bool debug) {
     posiciona_inicio_corrida(corrida, debug);
 
@@ -481,7 +514,7 @@ void arbitro(struct_corrida* corrida, bool debug) {
         if(debug) sleep(QUANTUM/1000);
     }
 
-    printa_equipes(corrida->equipes, corrida->qtd_equipes);
+    printa_relatorio_final(corrida->equipes, corrida->qtd_equipes);
 
     for(int i = 0; i < corrida->qtd_equipes*2; i++) {
         pthread_kill(t_ciclista[i], 9);

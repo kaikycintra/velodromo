@@ -24,4 +24,3 @@ https://www.geeksforgeeks.org/c/c-program-to-find-minimum-value-in-array/
 resolver colega atualizando posição enquanto se comunica para sair
 falta implementar versão eficiente
 falta limpar memória no árbitro
-falta printar resultado no árbitro
