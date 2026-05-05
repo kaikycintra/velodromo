@@ -425,7 +425,6 @@ bool check_debug_flag(char *debug_arg, int argc) {
     }
 
     char *debug = debug_arg;
-    printf("%s\n", debug);
     bool check_dash = (strncmp(debug, "--", 2) == 0);
     
     debug += 2;
