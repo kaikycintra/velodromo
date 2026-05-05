@@ -14,3 +14,7 @@ https://www.w3schools.com/c/c_random_numbers.php
 https://www.cs.unibo.it/~ghini/didattica/sistop/pthreads_tutorial/POSIX_Threads_Programming.htm
 https://stackoverflow.com/questions/20772476/when-to-use-pthread-condition-variables
 https://www.geeksforgeeks.org/operating-systems/mutex-vs-semaphore/
+man strncmp
+
+falta implementar versão eficiente
+falta implementar sincronização do árbitro e ciclistas
